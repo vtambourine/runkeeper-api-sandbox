@@ -1,0 +1,5 @@
+--compilers js:babel/register
+--require test/helpers/mock-server.js
+--timeout 2000
+--reporter dot
+--ui bdd
