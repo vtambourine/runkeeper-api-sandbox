@@ -15,7 +15,7 @@ var CLIENT_SECRET = process.env.CLIENT_SECRET || config.CLIENT_SECRET;
 var app = koa();
 
 app.use(views('views', {
-    map: {html: 'handlebars'}
+    map: {html: 'swig'}
 }))
 
 // TODO: Move to separate files
@@ -36,9 +36,10 @@ var router = Router()
                 }
                 return result;
             }, 0);
-            yield this.render('index', {distance: totalDistance });
+            yield this.render('result', {distance: totalDistance });
         } else {
-            this.redirect('/register/auth')
+            yield this.render('hello');
+            // this.redirect('/register/auth')
         }
     })
     .get('/register/auth', function *(next) {
@@ -71,13 +72,38 @@ var router = Router()
             var result = JSON.parse(result.body);
             var token = result.access_token;
             this.cookies.set('bearer', token, {expires: new Date(Date.now() + 60 * 60 * 24 * 365 * 1000)})
-            this.body = token || '333';
+            this.redirect('/');
         } else {
             this.body = 'Error'
+        }
+    })
+    .get('/deauth', function *(next) {
+        var token = this.cookies.get('bearer');
+        var result = yield request.post({
+            url: 'https://runkeeper.com/apps/de-authorize',
+            form: {
+                'access_token': token
+            }
+        });
+        console.log(result.statusCode, typeof result.statusCode);
+        console.log(result.body);
+        if (result.statusCode === 204) {
+            console.log('removing cookie bearer', this.cookies.get('bearer'));
+            this.cookies.set('bearer');
+            this.redirect('/');
+        } else {
+            console.log('WAT');
         }
     });
 
 app.use(router.routes());
+
+app.use(function *(next) {
+    if (this.status === 404) {
+        this.status = 404;
+        this.body = 'Page not found';
+    }
+});
 
 app.listen(3000);
 
