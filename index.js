@@ -10,7 +10,7 @@ import config from './config.keys';
 
 var CLIENT_ID = process.env.CLIENT_ID || config.CLIENT_ID;
 var CLIENT_SECRET = process.env.CLIENT_SECRET || config.CLIENT_SECRET;
-var ACCESS_TOKEN = process.env.ACCESS_TOKEN || '44a4df799f5a4bc4ad3f20696172415b';
+// var ACCESS_TOKEN = process.env.ACCESS_TOKEN || '44a4df799f5a4bc4ad3f20696172415b';
 
 var app = koa();
 
@@ -21,23 +21,25 @@ app.use(views('views', {
 // TODO: Move to separate files
 var router = Router()
     .get('/', function *(next) {
-        var healthGraph = new HealthGraphAPI({token: ACCESS_TOKEN});
-        var user = yield healthGraph.user();
-        var records = yield healthGraph.records();
-        // return this.body = records;
-        var totalDistance = records.reduce((result, record) => {
-            if (record.activity_type === 'Running') {
-                result = record.stats.reduce((result, stat) => {
-                    if (stat.stat_type === 'OVERALL') {
-                        result = stat.value;
-                    }
-                    return result;
-                }, 0)
-            }
-            console.log(record);
-            return result;
-        }, 0);
-        yield this.render('index', {distance: totalDistance / 1000});
+        var token = this.cookies.get('bearer');
+        if (token) {
+            var healthGraph = new HealthGraphAPI({token});
+            var records = yield healthGraph.records();
+            var totalDistance = records.reduce((result, record) => {
+                if (record.activity_type === 'Running') {
+                    result = record.stats.reduce((result, stat) => {
+                        if (stat.stat_type === 'OVERALL') {
+                            result = stat.value;
+                        }
+                        return result;
+                    }, 0)
+                }
+                return result;
+            }, 0);
+            yield this.render('index', {distance: totalDistance });
+        } else {
+            this.redirect('/register/auth')
+        }
     })
     .get('/register/auth', function *(next) {
         var authorizationUrl = url.format(
@@ -49,7 +51,6 @@ var router = Router()
                 }
             }
         ));
-        this.body = authorizationUrl;
         this.redirect(authorizationUrl);
         this.status = 301;
     })
@@ -67,7 +68,10 @@ var router = Router()
             }
         });
         if (result.statusCode === 200) {
-            this.body = result.body;
+            var result = JSON.parse(result.body);
+            var token = result.access_token;
+            this.cookies.set('bearer', token, {expires: new Date(Date.now() + 60 * 60 * 24 * 365 * 1000)})
+            this.body = token || '333';
         } else {
             this.body = 'Error'
         }
