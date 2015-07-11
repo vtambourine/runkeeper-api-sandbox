@@ -1,0 +1,12 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div>
+    <h2>Произошла ошибка</h2>
+    <p>
+        Произошла ошибка<br>
+        {{ error }}<br>
+        <a href="/register/auth">Авторизоваться еще раз</a>
+    </p>
+</div>
+{% endblock %}

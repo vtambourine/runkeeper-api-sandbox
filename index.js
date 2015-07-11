@@ -70,6 +70,10 @@ var router = Router()
         });
         if (result.statusCode === 200) {
             var result = JSON.parse(result.body);
+            console.log(result);
+            if (result.error) yield this.render('error', {error: 'Error'});
+            return;
+            console.log(result, typeof result);
             var token = result.access_token;
             this.cookies.set('bearer', token, {expires: new Date(Date.now() + 60 * 60 * 24 * 365 * 1000)})
             this.redirect('/');
@@ -85,10 +89,7 @@ var router = Router()
                 'access_token': token
             }
         });
-        console.log(result.statusCode, typeof result.statusCode);
-        console.log(result.body);
         if (result.statusCode === 204) {
-            console.log('removing cookie bearer', this.cookies.get('bearer'));
             this.cookies.set('bearer');
             this.redirect('/');
         } else {
